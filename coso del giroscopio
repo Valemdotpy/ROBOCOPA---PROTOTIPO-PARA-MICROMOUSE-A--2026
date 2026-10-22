@@ -1,0 +1,86 @@
+#include <SoftwareSerial.h>
+
+// Configuración del HC-05 (puedes ajustar los pines según tus conexiones)
+// RX del HC-05 al pin 2 de Arduino, TX del HC-05 al pin 3 de Arduino 
+SoftwareSerial bluetooth(2, 3); 
+
+// Simulación de lectura del giroscopio (ángulo Yaw / Z entre 0° y 360°)
+// Aquí debes integrar la lectura real de tu giroscopio (ej. MPU6050)
+float obtenerAnguloGiroscopio() {
+    float anguloZ = 45.0; // Ejemplo: reemplace con la lectura real del giroscopio 
+    return anguloZ;
+}
+
+// 1. Función que retorna la Dirección Cardinal basada en el ángulo (Norte = 0°)
+String obtenerDireccion(float angulo) {
+    // Normalizar el ángulo entre 0 y 360
+    while (angulo < 0) angulo += 360;
+    while (angulo >= 360) angulo -= 360;
+
+    if (angulo >= 337.5 || angulo < 22.5)  return "Norte (N)";
+    else if (angulo >= 22.5 && angulo < 67.5)   return "Noreste (NE)";
+    else if (angulo >= 67.5 && angulo < 112.5)  return "Este (E)";
+    else if (angulo >= 112.5 && angulo < 157.5) return "Sureste (SE)";
+    else if (angulo >= 157.5 && angulo < 202.5) return "Sur (S)";
+    else if (angulo >= 202.5 && angulo < 247.5) return "Suroeste (SO)";
+    else if (angulo >= 247.5 && angulo < 292.5) return "Oeste (O)";
+    else if (angulo >= 292.5 && angulo < 337.5) return "Noroeste (NO)";
+    
+    return "Desconocido";
+}
+
+// 2. Función que calcula qué tan desfasado está ortogonalmente, sinseramente lo busque en internet me dio paja buscarlo
+// (Distancia angular al eje ortogonal más cercano: 0°, 90°, 180° o 270°) 
+float calcularDesfaseOrtogonal(float angulo) {
+    while (angulo < 0) angulo += 360;
+    while (angulo >= 360) angulo -= 360;
+
+    // Encontrar el múltiplo de 90 más cercano (0, 90, 180, 270, 360) esa es la wbd que te pregunte en clase
+    float resto = fmod(angulo, 90.0); // Residuo respecto al cuadrante
+    
+    // El desfase es la distancia mínima hacia el eje ortogonal anterior o siguiente :0
+    
+    if(resto>45.0)
+    {
+      desfase = 90.0 - resto;
+    }
+    else{
+      desfase=resto;
+    }
+    return desfase;
+}
+
+void setup() {
+    Serial.begin(9600);
+    bluetooth.begin(9600);
+    
+    // Inicialización de motores, puentes H y giroscopio acasito
+    Serial.println("Sistema iniciado. Tomando Norte como 0°...");
+}
+
+void loop() {
+    // Obtener ángulo actual del giroscopio
+    float anguloActual = obtenerAnguloGiroscopio();
+
+    // Obtener resultados de las funciones asdsDSDASD
+    String direccion = obtenerDireccion(anguloActual);
+    float desfase = calcularDesfaseOrtogonal(anguloActual);
+
+    // Enviar datos hacia la computadora a través del módulo HC-05 (Bluetooth) los nombres estaban default ni ganas de cambiarlo
+    bluetooth.print("Angulo: ");
+    bluetooth.print(anguloActual);
+    bluetooth.print("° | Direccion: ");
+    bluetooth.print(direccion);
+    bluetooth.print(" | Desfase Ortogonal: ");
+    bluetooth.print(desfase);
+    bluetooth.println("°");
+
+    //para mostrar por el monitor serial si se te da la gana 
+    Serial.print("Direccion: ");
+    Serial.print(direccion);
+    Serial.print(" \t Desfase: ");
+    Serial.print(desfase);
+    Serial.println("°");
+
+    delay(500); // Pausa para lectura legible
+}
